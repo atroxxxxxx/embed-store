@@ -9,10 +9,7 @@ import (
 
 const DefaultHTTP = ":8080"
 
-var (
-	ErrDSNEmpty        = errors.New("empty dsn")
-	ErrUnknownLogLevel = errors.New("unknown log level")
-)
+var ErrDSNEmpty = errors.New("empty dsn")
 
 type Config struct {
 	DSN        string
@@ -37,15 +34,7 @@ func New() (Config, error) {
 	}
 	if *isDebug {
 		*logLevel = logger.Debug
-	} else {
-		switch *logLevel {
-		case logger.Info:
-		case logger.Warn:
-		case logger.Error:
-		case logger.Debug:
-		default:
-			return Config{}, ErrUnknownLogLevel
-		}
 	}
+	// TODO: fields)
 	return Config{*dsn, *addr, *logLevel, *runImport, *runCluster}, nil
 }
