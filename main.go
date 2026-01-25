@@ -1,7 +1,15 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/atroxxxxxx/embed-store/internal/config"
+)
 
 func main() {
-	fmt.Println("a")
+	cfg, err := config.New()
+	if err != nil {
+		panic("flag parsing failed: " + err.Error())
+	}
+	fmt.Println(cfg)
 }
