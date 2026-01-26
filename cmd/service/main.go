@@ -6,15 +6,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/atroxxxxxx/embed-store/internal/config"
 	database "github.com/atroxxxxxx/embed-store/internal/db"
 	"github.com/atroxxxxxx/embed-store/internal/logger"
+	"github.com/atroxxxxxx/embed-store/internal/runcfg"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 )
 
 func main() {
-	cfg, err := config.New()
+	cfg, err := runcfg.Parse()
 	if err != nil {
 		panic("flag parsing: " + err.Error())
 	}
