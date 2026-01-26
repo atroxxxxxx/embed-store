@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  database:
+    image: pgvector/pgvector:pg16
+    container_name: embed-database
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5438:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  service:
+    build: .
+    container_name: embed-service
+    depends_on:
+      - database
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
