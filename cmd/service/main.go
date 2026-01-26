@@ -9,6 +9,7 @@ import (
 	database "github.com/atroxxxxxx/embed-store/internal/db"
 	"github.com/atroxxxxxx/embed-store/internal/logger"
 	"github.com/atroxxxxxx/embed-store/internal/runcfg"
+	_ "github.com/golang-migrate/migrate/v4"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 )
@@ -34,7 +35,7 @@ func main() {
 	log.Debug("log init")
 	log.Info("trying to connect to database")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	start := time.Now()
 

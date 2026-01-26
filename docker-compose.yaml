@@ -13,15 +13,31 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  migrate:
+    image: "migrate/migrate:latest"
+    depends_on:
+      - database
+    volumes:
+      - ./db/migrations:/db/migrations
+    command: [
+      "-path",
+      "/db/migrations",
+      "-database",
+      "postgres://${DB_USER}:${DB_PASSWORD}@database:5432/${DB_NAME}?sslmode=${DB_SSLMODE}",
+      "up"
+    ]
+
   service:
     build: .
     container_name: embed-service
     depends_on:
       - database
+      - migrate
     env_file:
       - .env
     ports:
       - "8080:8080"
+
 
 volumes:
   pgdata:
