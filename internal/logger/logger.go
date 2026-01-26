@@ -35,7 +35,12 @@ func New(level string) (*zap.Logger, error) {
 	config := zap.NewProductionConfig()
 
 	config.Level.SetLevel(logLevel)
-	config.DisableCaller = false
+	if logLevel == zapcore.DebugLevel {
+		config.Development = true
+	} else {
+		config.DisableCaller = true
+		config.DisableStacktrace = true
+	}
 	logger, err := config.Build()
 	if err != nil {
 		return nil, err
