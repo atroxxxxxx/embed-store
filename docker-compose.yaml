@@ -12,11 +12,20 @@ services:
       - "5438:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""
+      ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
 
   migrate:
     image: "migrate/migrate:latest"
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     volumes:
       - ./db/migrations:/db/migrations
     command: [
@@ -31,8 +40,10 @@ services:
     build: .
     container_name: embed-service
     depends_on:
-      - database
-      - migrate
+      migrate:
+        condition: service_completed_successfully
+      database:
+        condition: service_healthy
     env_file:
       - .env
     ports:

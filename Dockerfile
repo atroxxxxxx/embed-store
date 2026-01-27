@@ -1,3 +1,4 @@
+# build configuration
 FROM golang:1.25.6 AS builder
 LABEL authors="atroxxx"
 
@@ -10,6 +11,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /service ./cmd/service
 
+# run configuration
 FROM ubuntu:latest
 LABEL authors="atroxxx"
 WORKDIR /
