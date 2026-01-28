@@ -44,12 +44,12 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to connect database: ", zap.Error(err))
 	}
-	defer db.Close()
+	defer db.DB.Close()
 
 	duration := time.Since(start)
 	log.Info("database successfully connected", zap.Duration("duration: ", duration))
 
-	if err = db.Ping(); err != nil {
+	if err = db.DB.Ping(); err != nil {
 		log.Error("database connection failed", zap.Error(err))
 	}
 }

@@ -6,23 +6,27 @@ import (
 	"time"
 )
 
+type Database struct {
+	DB *sql.DB
+}
+
 const SQLDriver string = "pgx"
 
-func Connect(dsn string, ctx context.Context) (*sql.DB, error) {
+func Connect(dsn string, ctx context.Context) (Database, error) {
 	db, err := sql.Open(SQLDriver, dsn)
 	if err != nil {
-		return nil, err
+		return Database{}, err
 	}
 	for {
 		err = db.PingContext(ctx)
 		if err == nil {
-			return db, nil
+			return Database{DB: db}, nil
 		}
 		select {
 		case <-time.After(500 * time.Millisecond):
 		case <-ctx.Done():
 			db.Close()
-			return nil, ctx.Err()
+			return Database{}, ctx.Err()
 		}
 	}
 }
