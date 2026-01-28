@@ -5,6 +5,7 @@ go 1.25.6
 require (
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/jackc/pgx/v5 v5.8.0
+	github.com/pgvector/pgvector-go v0.3.0
 	go.uber.org/zap v1.27.1
 )
 
