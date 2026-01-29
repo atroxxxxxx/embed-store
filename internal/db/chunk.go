@@ -20,11 +20,11 @@ type Chunk struct {
 	Deleted   bool
 	Dead      bool
 	Embedding pgvector.Vector
-	Info      Info
+	Info      Metadata
 }
 
-type Info struct {
-	Number uint32
-	Start  uint64
-	End    uint64
+type Metadata struct {
+	Number int32
+	Start  int64
+	End    int64
 }

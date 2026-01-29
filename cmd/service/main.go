@@ -65,7 +65,7 @@ func main() {
 		Deleted:   false,
 		Dead:      true,
 		Embedding: pgvector.NewVector(make([]float32, database.VectorSize)),
-		Info: database.Info{
+		Info: database.Metadata{
 			Number: 1,
 			Start:  1,
 			End:    2,
