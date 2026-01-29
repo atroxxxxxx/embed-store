@@ -52,8 +52,9 @@ func (obj *Database) InsertChunk(ctx context.Context, chunk *Chunk) (int64, erro
 	return chunk.ID, nil
 }
 
-func (obj *Database) ChunkById(ctx context.Context, id int64) (*Chunk, error) {
-	const response = "SELECT doc_id, title, author, text, time, type, score, deleted, dead, embedding, chunk_no, chunk_start, chunk_end FROM hackernews WHERE id = $1"
+func (obj *Database) ChunkByID(ctx context.Context, id int64) (*Chunk, error) {
+	const response = "SELECT doc_id, title, author, text, time, type, score, " +
+		"deleted, dead, embedding, chunk_no, chunk_start, chunk_end FROM hackernews WHERE id = $1"
 	row := obj.DB.QueryRowContext(ctx, response, id)
 	chunk := Chunk{}
 	if err := row.Scan(&chunk.DocID, &chunk.Title, &chunk.Author, &chunk.Text,
@@ -61,5 +62,6 @@ func (obj *Database) ChunkById(ctx context.Context, id int64) (*Chunk, error) {
 		&chunk.Info.Number, &chunk.Info.Start, &chunk.Info.End); err != nil {
 		return nil, fmt.Errorf("id %d not found: %w", id, err)
 	}
+	chunk.ID = id
 	return &chunk, nil
 }

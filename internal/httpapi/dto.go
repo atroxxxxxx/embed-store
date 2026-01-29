@@ -38,7 +38,7 @@ type Response struct {
 	Deleted   bool        `json:"deleted"`
 	Dead      bool        `json:"dead"`
 	Embedding *[]float32  `json:"embedding,omitempty"`
-	Info      db.Metadata `json:"metadata"`
+	Info      db.Metadata `json:"chunk_metadata"`
 }
 
 var (
