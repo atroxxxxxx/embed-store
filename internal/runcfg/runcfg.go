@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/atroxxxxxx/embed-store/internal/importer"
 	"github.com/atroxxxxxx/embed-store/internal/logger"
 )
 
@@ -20,6 +21,7 @@ type RunConfig struct {
 	LogLevel   string
 	RunImport  bool
 	RunCluster bool
+	ImportCfg  importer.Config
 }
 
 func Parse() (RunConfig, error) {
@@ -64,13 +66,20 @@ func parseEnv() (RunConfig, error) {
 		cfg.LogLevel = logger.Info
 	}
 
-	// TODO: remove code repeating
 	if envFlag := os.Getenv("RUN_IMPORT"); envFlag != "" {
 		boolFlag, err := strconv.ParseBool(envFlag)
 		if err != nil {
 			return cfg, fmt.Errorf("invalid RUN_IMPORT: %w", err)
 		}
 		cfg.RunImport = boolFlag
+	}
+
+	if cfg.RunImport {
+		cfg.ImportCfg.FilePath = os.Getenv("IMPORT_FILE")
+
+		cfg.ImportCfg.Workers = getEnvCount("IMPORT_WORKERS", 4)
+		cfg.ImportCfg.BatchSize = getEnvCount("IMPORT_BATCH_SIZE", 200)
+		cfg.ImportCfg.Limit = getEnvCount("IMPORT_LIMIT", 0)
 	}
 
 	if envFlag := os.Getenv("RUN_CLUSTER"); envFlag != "" {
@@ -102,4 +111,16 @@ func parseEnv() (RunConfig, error) {
 	)
 
 	return cfg, nil
+}
+
+func getEnvCount(key string, def int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return def
+	}
+	count, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return def
+	}
+	return int(count)
 }

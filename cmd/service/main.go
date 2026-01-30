@@ -6,6 +6,8 @@ import (
 	golog "log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	database "github.com/atroxxxxxx/embed-store/internal/db"
@@ -38,19 +40,18 @@ func main() {
 	log.Debug("log init")
 	log.Info("trying to connect to database")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	rootCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	connectCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	start := time.Now()
 
-	db, err := database.Connect(cfg.DSN, ctx)
+	db, err := database.Connect(cfg.DSN, connectCtx)
 
 	if err != nil {
 		log.Fatal("failed to connect database: ", zap.Error(err))
 	}
 	defer db.DB.Close()
-
-	duration := time.Since(start)
-	log.Info("database successfully connected", zap.Duration("duration", duration))
+	log.Info("database successfully connected")
 
 	handler, err := httpapi.New(&db, log)
 	if err != nil {
