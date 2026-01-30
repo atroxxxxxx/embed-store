@@ -9,6 +9,7 @@ import (
 
 type Repo interface {
 	InsertChunk(ctx context.Context, chunk *db.Chunk) (int64, error)
+	InsertBatch(ctx context.Context, batch []*db.Chunk) (int64, error)
 }
 
 type Config struct {

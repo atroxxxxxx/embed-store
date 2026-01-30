@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS hackernews(
     author TEXT,
     text TEXT NOT NULL,
     time TIMESTAMPTZ NOT NULL,
-    type TEXT NOT NULL check (type IN ('story', 'comment')),
+    type TEXT NOT NULL check (type IN ('story', 'comment', 'poll', 'pollopt', 'job')),
     score INT NOT NULL DEFAULT 0,
     deleted BOOLEAN NOT NULL,
     dead BOOLEAN NOT NULL,

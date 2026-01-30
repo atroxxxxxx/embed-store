@@ -64,6 +64,12 @@ func (Parser) TypeFromInt(fieldName string, value string) (string, error) {
 		return "story", nil
 	case "2":
 		return "comment", nil
+	case "3":
+		return "poll", nil
+	case "4":
+		return "pollopt", nil
+	case "5":
+		return "job", nil
 	default:
 		return "", fmt.Errorf("%s: unknown type %q (expected 1 or 2)", fieldName, trimmed)
 	}

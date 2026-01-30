@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "github.com/jackc/pgx/v5"
@@ -46,14 +47,14 @@ func Connect(dsn string, ctx context.Context) (Database, error) {
 
 func (obj *Database) InsertChunk(ctx context.Context, chunk *Chunk) (int64, error) {
 	const sqlResponse = "INSERT INTO hackernews " +
-		"(doc_id, title, author, text, time, type, deleted, dead, embedding, chunk_no, chunk_start, chunk_end) " +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id"
+		"(doc_id, title, author, text, time, type, score, deleted, dead, embedding, chunk_no, chunk_start, chunk_end) " +
+		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id"
 	if chunk == nil {
 		return 0, ErrChunkNil
 	}
 
 	row := obj.DB.QueryRowContext(ctx, sqlResponse,
-		chunk.DocID, chunk.Title, chunk.Author, chunk.Text, chunk.Time, chunk.Type, chunk.Deleted, chunk.Dead,
+		chunk.DocID, chunk.Title, chunk.Author, chunk.Text, chunk.Time, chunk.Type, chunk.Score, chunk.Deleted, chunk.Dead,
 		chunk.Embedding, chunk.Info.Number, chunk.Info.Start, chunk.Info.End)
 	if err := row.Scan(&chunk.ID); err != nil {
 		var pgErr *pgconn.PgError
@@ -65,6 +66,73 @@ func (obj *Database) InsertChunk(ctx context.Context, chunk *Chunk) (int64, erro
 		return 0, fmt.Errorf("insert failed: %w", err)
 	}
 	return chunk.ID, nil
+}
+
+func (obj *Database) InsertBatch(ctx context.Context, batch []*Chunk) (int64, error) {
+	if len(batch) == 0 {
+		return 0, nil
+	}
+
+	const columnsPerRow = 13
+	var queryBuilder strings.Builder
+	queryBuilder.Grow(256 + len(batch)*columnsPerRow*6)
+	queryBuilder.WriteString(
+		"INSERT INTO hackernews " +
+			"(doc_id, title, author, text, time, type, score, deleted, dead, embedding, " +
+			"chunk_no, chunk_start, chunk_end) VALUES ",
+	)
+
+	args := make([]any, 0, len(batch)*columnsPerRow)
+	argIdx := 1
+	for rowIdx, chunk := range batch {
+		if chunk == nil {
+			return 0, fmt.Errorf("nil chunk in batch. index: %d", argIdx)
+		}
+		if rowIdx > 0 {
+			queryBuilder.WriteByte(',')
+		}
+
+		queryBuilder.WriteByte('(')
+		for idx := range columnsPerRow {
+			if idx > 0 {
+				queryBuilder.WriteByte(',')
+			}
+			queryBuilder.WriteByte('$')
+			queryBuilder.WriteString(fmt.Sprint(argIdx))
+			argIdx++
+		}
+		queryBuilder.WriteByte(')')
+
+		args = append(args,
+			chunk.DocID,
+			chunk.Title,
+			chunk.Author,
+			chunk.Text,
+			chunk.Time,
+			chunk.Type,
+			chunk.Score,
+			chunk.Deleted,
+			chunk.Dead,
+			chunk.Embedding,
+			chunk.Info.Number,
+			chunk.Info.Start,
+			chunk.Info.End,
+		)
+	}
+
+	queryBuilder.WriteString(" ON CONFLICT (doc_id, chunk_no) DO NOTHING")
+
+	result, err := obj.DB.ExecContext(ctx, queryBuilder.String(), args...)
+	if err != nil {
+		return 0, fmt.Errorf("batch insert failed: %w", err)
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("rows affected: %w", err)
+	}
+
+	return affected, nil
 }
 
 func (obj *Database) ChunkByID(ctx context.Context, id int64) (*Chunk, error) {
