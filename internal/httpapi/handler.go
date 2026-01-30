@@ -82,7 +82,11 @@ func (obj *Handler) post(writer http.ResponseWriter, request *http.Request) {
 	}
 	id, err := obj.db.InsertChunk(request.Context(), chunk)
 	if err != nil {
-		obj.sendErrResponse(writer, "internal server error", http.StatusInternalServerError, err)
+		if errors.Is(err, database.ErrDuplicateKey) {
+			obj.sendErrResponse(writer, "conflict", http.StatusPaymentRequired, err)
+		} else {
+			obj.sendErrResponse(writer, "internal server error", http.StatusInternalServerError, err)
+		}
 		return
 	}
 	obj.logger.Debug("successfully inserted", zap.Int64("id", id))

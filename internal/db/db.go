@@ -6,15 +6,24 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	_ "github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type Database struct {
 	DB *sql.DB
 }
 
-const SQLDriver string = "pgx"
+const (
+	SQLDriver     string = "pgx"
+	uniqueErrCode        = "23505"
+)
 
-var ErrChunkNil = errors.New("chunk is null")
+var (
+	ErrChunkNil     = errors.New("chunk is null")
+	ErrDuplicateKey = errors.New("duplicate key")
+)
 
 func Connect(dsn string, ctx context.Context) (Database, error) {
 	db, err := sql.Open(SQLDriver, dsn)
@@ -47,6 +56,12 @@ func (obj *Database) InsertChunk(ctx context.Context, chunk *Chunk) (int64, erro
 		chunk.DocID, chunk.Title, chunk.Author, chunk.Text, chunk.Time, chunk.Type, chunk.Deleted, chunk.Dead,
 		chunk.Embedding, chunk.Info.Number, chunk.Info.Start, chunk.Info.End)
 	if err := row.Scan(&chunk.ID); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == uniqueErrCode {
+				return 0, ErrDuplicateKey
+			}
+		}
 		return 0, fmt.Errorf("insert failed: %w", err)
 	}
 	return chunk.ID, nil
