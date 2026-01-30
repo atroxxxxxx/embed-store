@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/atroxxxxxx/embed-store/internal/importer"
 	"github.com/atroxxxxxx/embed-store/internal/logger"
 )
 
@@ -21,7 +20,12 @@ type RunConfig struct {
 	LogLevel   string
 	RunImport  bool
 	RunCluster bool
-	ImportCfg  importer.Config
+	ImportCfg  struct {
+		FilePath  string
+		Workers   int
+		BatchSize int
+		Limit     int
+	}
 }
 
 func Parse() (RunConfig, error) {
@@ -48,6 +52,7 @@ func Parse() (RunConfig, error) {
 			HTTPAddr:   *addr,
 			LogLevel:   *logLevel,
 			RunImport:  *runImport,
+			ImportCfg:  temp.ImportCfg,
 			RunCluster: *runCluster,
 		},
 		nil

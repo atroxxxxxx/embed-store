@@ -12,6 +12,7 @@ import (
 
 	database "github.com/atroxxxxxx/embed-store/internal/db"
 	"github.com/atroxxxxxx/embed-store/internal/httpapi"
+	"github.com/atroxxxxxx/embed-store/internal/importer"
 	"github.com/atroxxxxxx/embed-store/internal/logger"
 	"github.com/atroxxxxxx/embed-store/internal/runcfg"
 	_ "github.com/golang-migrate/migrate/v4"
@@ -52,6 +53,10 @@ func main() {
 	}
 	defer db.DB.Close()
 	log.Info("database successfully connected")
+
+	if cfg.RunImport {
+		importer.Exec(rootCtx, &db, cfg, log, 20*time.Second)
+	}
 
 	handler, err := httpapi.New(&db, log)
 	if err != nil {
