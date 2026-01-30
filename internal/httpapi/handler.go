@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	database "github.com/atroxxxxxx/embed-store/internal/db"
+	"github.com/pgvector/pgvector-go"
 	"go.uber.org/zap"
 )
 
@@ -14,6 +15,7 @@ type Repo interface {
 	InsertChunk(ctx context.Context, chunk *database.Chunk) (int64, error)
 	// ChunkByID searches chunk by ID in db
 	ChunkByID(ctx context.Context, id int64) (*database.Chunk, error)
+	Search(ctx context.Context, vec *pgvector.Vector, limit int) ([]*database.Chunk, error)
 }
 
 type Handler struct {

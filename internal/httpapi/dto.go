@@ -28,7 +28,7 @@ type Request struct {
 
 type SearchRequest struct {
 	Embedding        []float32 `json:"embedding"`
-	K                int       `json:"k"`
+	Limit            int       `json:"limit"`
 	IncludeEmbedding bool      `json:"include_embedding"`
 }
 
@@ -58,6 +58,9 @@ const (
 	timeLayout = time.RFC3339
 	story      = "story"
 	comment    = "comment"
+	poll       = "poll"
+	pollopt    = "pollopt"
+	job        = "job"
 )
 
 func Map(request *Request) (*db.Chunk, error) {
@@ -71,7 +74,7 @@ func Map(request *Request) (*db.Chunk, error) {
 	}
 
 	requestType := strings.TrimSpace(strings.ToLower(request.Type))
-	if requestType != story && requestType != comment {
+	if requestType != story && requestType != comment && requestType != poll && requestType != pollopt && requestType != job {
 		return nil, ErrInvalidType
 	}
 

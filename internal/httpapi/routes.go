@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	database "github.com/atroxxxxxx/embed-store/internal/db"
+	"github.com/pgvector/pgvector-go"
 	"go.uber.org/zap"
 )
 
@@ -116,7 +117,7 @@ func (obj *Handler) get(writer http.ResponseWriter, request *http.Request) {
 
 func (obj *Handler) search(writer http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodPost {
-		obj.sendErrResponse(writer, "method not allowed", http.StatusMethodNotAllowed, nil)
+		obj.sendErrResponse(writer, "method not allowed", http.StatusMethodNotAllowed, ErrInvalidType)
 		return
 	}
 
@@ -129,11 +130,34 @@ func (obj *Handler) search(writer http.ResponseWriter, request *http.Request) {
 		obj.sendErrResponse(writer,
 			"bad request: invalid embedding length", http.StatusBadRequest, ErrInvalidEmbeddingLen,
 		)
+		return
 	}
-	if req.K <= 0 {
-		req.K = 4
-	} else if req.K > 100 {
-		req.K = 100
+	if req.Limit <= 0 {
+		req.Limit = 4
+	} else if req.Limit > 100 {
+		req.Limit = 100
 	}
 
+	vec := pgvector.NewVector(req.Embedding)
+	chunks, err := obj.db.Search(request.Context(), &vec, req.Limit)
+	if err != nil {
+		obj.sendErrResponse(writer, "internal server error", http.StatusInternalServerError, err)
+		return
+	}
+
+	responses := make([]*Response, 0, len(chunks))
+	for _, chunk := range chunks {
+		resp, err := Unmap(chunk, req.IncludeEmbedding)
+		if err != nil {
+			obj.sendErrResponse(writer, "internal server error", http.StatusInternalServerError, err)
+		}
+		responses = append(responses, &resp)
+	}
+
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusOK)
+
+	if err = json.NewEncoder(writer).Encode(responses); err != nil {
+		obj.logger.Warn("encode response failed", zap.Error(err))
+	}
 }
