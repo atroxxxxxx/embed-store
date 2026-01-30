@@ -26,6 +26,12 @@ type Request struct {
 	ChunkEnd   int64     `json:"chunk_end"`
 }
 
+type SearchRequest struct {
+	Embedding        []float32 `json:"embedding"`
+	K                int       `json:"k"`
+	IncludeEmbedding bool      `json:"include_embedding"`
+}
+
 type Response struct {
 	ID        int64       `json:"id"`
 	DocId     int64       `json:"doc_id"`

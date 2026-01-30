@@ -10,6 +10,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/pgvector/pgvector-go"
 )
 
 type Database struct {
@@ -147,4 +148,39 @@ func (obj *Database) ChunkByID(ctx context.Context, id int64) (*Chunk, error) {
 	}
 	chunk.ID = id
 	return &chunk, nil
+}
+
+func (obj *Database) Search(ctx context.Context, vec *pgvector.Vector, limit int) ([]*Chunk, error) {
+	if limit <= 0 {
+		return nil, nil
+	}
+
+	const sqlQuery = `
+	SELECT
+		id, doc_id, title, author, text, time, type, score, deleted, dead, embedding, chunk_no, chunk_start, chunk_end
+	FROM hackernews
+	ORDER BY embedding <-> $1
+	LIMIT $2
+`
+	rows, err := obj.DB.QueryContext(ctx, sqlQuery, vec, limit)
+	if err != nil {
+		return nil, fmt.Errorf("search: %w", err)
+	}
+	defer rows.Close()
+
+	out := make([]*Chunk, 0, limit)
+	for rows.Next() {
+		var chunk Chunk
+		if err := rows.Scan(
+			&chunk.ID, &chunk.DocID, &chunk.Title, &chunk.Author, &chunk.Text, &chunk.Time, &chunk.Type, &chunk.Score,
+			&chunk.Deleted, &chunk.Dead, &chunk.Embedding, &chunk.Info.Number, &chunk.Info.Start, &chunk.Info.End,
+		); err != nil {
+			return nil, fmt.Errorf("scan: %w", err)
+		}
+		out = append(out, &chunk)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows: %w", err)
+	}
+	return out, nil
 }
