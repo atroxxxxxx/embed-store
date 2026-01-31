@@ -10,8 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/atroxxxxxx/embed-store/internal/cluster"
 	database "github.com/atroxxxxxx/embed-store/internal/db"
 	"github.com/atroxxxxxx/embed-store/internal/httpapi"
+	"github.com/atroxxxxxx/embed-store/internal/importer"
 	"github.com/atroxxxxxx/embed-store/internal/logger"
 	"github.com/atroxxxxxx/embed-store/internal/runcfg"
 	_ "github.com/golang-migrate/migrate/v4"
@@ -53,17 +55,28 @@ func main() {
 	defer db.DB.Close()
 	log.Info("database successfully connected")
 
-	if cfg.RunImport {
-		ExecImporter(rootCtx, &db, cfg, log, 20*time.Second)
-	}
-
 	handler, err := httpapi.New(&db, log)
 	if err != nil {
 		log.Fatal("handler error", zap.Error(err))
 	}
+
+	go func() {
+		if cfg.RunImport {
+			if err = importer.ExecImporter(rootCtx, &db, cfg, log, 20*time.Second); err != nil {
+				log.Error("import aborted", zap.Error(err))
+				return
+			}
+		}
+		if cfg.RunCluster {
+			if err = cluster.ExecCluster(rootCtx, &db, cfg.ClusterCfg, log); err != nil {
+				log.Error("cluster aborted", zap.Error(err))
+				return
+			}
+		}
+	}()
+
 	log.Info("http server started", zap.String("addr", cfg.HTTPAddr))
-	err = http.ListenAndServe(cfg.HTTPAddr, handler.Routes())
-	if err != nil {
-		log.Fatal("something went wrong :(", zap.Error(err))
+	if err = http.ListenAndServe(cfg.HTTPAddr, handler.Routes()); err != nil {
+		log.Fatal("http server failed", zap.Error(err))
 	}
 }

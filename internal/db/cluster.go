@@ -1,11 +1,11 @@
 package db
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/pgvector/pgvector-go"
-	"golang.org/x/net/context"
 )
 
 type ClusterPoint struct {
@@ -69,7 +69,7 @@ func (obj *Database) UpdateClusterIDs(ctx context.Context, ids []int64, clusterI
 		if i > 0 {
 			builder.WriteByte(',')
 		}
-		builder.WriteString(fmt.Sprintf("($%d,$%d)", argNum, argNum+1))
+		builder.WriteString(fmt.Sprintf("($%d::bigint,$%d::int)", argNum, argNum+1))
 		args = append(args, ids[i], clusterIDs[i])
 		argNum += 2
 	}

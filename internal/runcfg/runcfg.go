@@ -15,16 +15,23 @@ const DefaultHTTP = ":8080"
 var ErrDSNEmpty = errors.New("incomplete db config")
 
 type RunConfig struct {
-	DSN        string
-	HTTPAddr   string
-	LogLevel   string
-	RunImport  bool
-	RunCluster bool
-	ImportCfg  struct {
+	DSN       string
+	HTTPAddr  string
+	LogLevel  string
+	RunImport bool
+	ImportCfg struct {
 		FilePath  string
 		Workers   int
 		BatchSize int
 		Limit     int
+	}
+	RunCluster bool
+	ClusterCfg struct {
+		Clusters  int
+		Iters     int
+		Workers   int
+		Limit     int
+		BatchSize int
 	}
 }
 
@@ -93,6 +100,14 @@ func parseEnv() (RunConfig, error) {
 			return cfg, fmt.Errorf("invalid RUN_CLUSTER: %w", err)
 		}
 		cfg.RunCluster = boolFlag
+	}
+
+	if cfg.RunCluster {
+		cfg.ClusterCfg.Clusters = getEnvCount("CLUSTER_COUNT", 64)
+		cfg.ClusterCfg.Iters = getEnvCount("CLUSTER_ITERS", 10)
+		cfg.ClusterCfg.Workers = getEnvCount("CLUSTER_WORKERS", 6)
+		cfg.ClusterCfg.Limit = getEnvCount("CLUSTER_LIMIT", 20000)
+		cfg.ClusterCfg.BatchSize = getEnvCount("CLUSTER_BATCH_SIZE", 1000)
 	}
 
 	host := os.Getenv("DB_HOST")

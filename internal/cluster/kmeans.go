@@ -7,9 +7,11 @@ import (
 )
 
 type ClusterConfig struct {
-	Clusters int
-	Iters    int
-	Workers  int
+	Clusters  int
+	Iters     int
+	Workers   int
+	Limit     int
+	BatchSize int
 }
 
 var (
