@@ -20,6 +20,7 @@ type Chunk struct {
 	Deleted   bool
 	Dead      bool
 	Embedding pgvector.Vector
+	ClusterID *int32
 	Info      Metadata
 }
 

@@ -29,6 +29,7 @@ type Request struct {
 type SearchRequest struct {
 	Embedding        []float32 `json:"embedding"`
 	Limit            int       `json:"limit"`
+	ClusterIDs       []int32   `json:"cluster_ids"`
 	IncludeEmbedding bool      `json:"include_embedding"`
 }
 
@@ -44,6 +45,7 @@ type Response struct {
 	Deleted   bool        `json:"deleted"`
 	Dead      bool        `json:"dead"`
 	Embedding *[]float32  `json:"embedding,omitempty"`
+	ClusterID int32       `json:"cluster_id"`
 	Info      db.Metadata `json:"chunk_metadata"`
 }
 
@@ -111,6 +113,10 @@ func Unmap(chunk *db.Chunk, withEmbedding bool) (Response, error) {
 		tmp := chunk.Embedding.Slice()
 		vec = &tmp
 	}
+	var clusterID int32 = -1
+	if chunk.ClusterID != nil {
+		clusterID = *chunk.ClusterID
+	}
 
 	return Response{
 		ID:        chunk.ID,
@@ -124,6 +130,7 @@ func Unmap(chunk *db.Chunk, withEmbedding bool) (Response, error) {
 		Deleted:   chunk.Deleted,
 		Dead:      chunk.Dead,
 		Embedding: vec,
+		ClusterID: clusterID,
 		Info:      chunk.Info,
 	}, nil
 }

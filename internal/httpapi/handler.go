@@ -11,11 +11,10 @@ import (
 )
 
 type Repo interface {
-	// InsertChunk inserts chunk to db
 	InsertChunk(ctx context.Context, chunk *database.Chunk) (int64, error)
-	// ChunkByID searches chunk by ID in db
 	ChunkByID(ctx context.Context, id int64) (*database.Chunk, error)
 	Search(ctx context.Context, vec *pgvector.Vector, limit int) ([]*database.Chunk, error)
+	SearchInClusters(ctx context.Context, vec *pgvector.Vector, clusterIDs []int32, limit int) ([]*database.Chunk, error)
 }
 
 type Handler struct {

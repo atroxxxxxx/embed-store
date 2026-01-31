@@ -103,12 +103,12 @@ func (obj *Database) InsertBatch(ctx context.Context, batch []*Chunk) (int64, er
 
 func (obj *Database) ChunkByID(ctx context.Context, id int64) (*Chunk, error) {
 	const request = "SELECT doc_id, title, author, text, time, type, score, " +
-		"deleted, dead, embedding, chunk_no, chunk_start, chunk_end FROM hackernews WHERE id = $1"
+		"deleted, dead, embedding, chunk_no, chunk_start, chunk_end, cluster_id FROM hackernews WHERE id = $1"
 	row := obj.DB.QueryRowContext(ctx, request, id)
 	chunk := Chunk{}
 	if err := row.Scan(&chunk.DocID, &chunk.Title, &chunk.Author, &chunk.Text,
 		&chunk.Time, &chunk.Type, &chunk.Score, &chunk.Deleted, &chunk.Dead, &chunk.Embedding,
-		&chunk.Info.Number, &chunk.Info.Start, &chunk.Info.End); err != nil {
+		&chunk.Info.Number, &chunk.Info.Start, &chunk.Info.End, &chunk.ClusterID); err != nil {
 		return nil, fmt.Errorf("id %d not found: %w", id, err)
 	}
 	chunk.ID = id
@@ -122,7 +122,7 @@ func (obj *Database) Search(ctx context.Context, vec *pgvector.Vector, limit int
 
 	const request = `
 	SELECT
-		id, doc_id, title, author, text, time, type, score, deleted, dead, embedding, chunk_no, chunk_start, chunk_end
+		id, doc_id, title, author, text, time, type, score, deleted, dead, embedding, chunk_no, chunk_start, chunk_end, cluster_id
 	FROM hackernews
 	ORDER BY embedding <-> $1
 	LIMIT $2
@@ -138,13 +138,56 @@ func (obj *Database) Search(ctx context.Context, vec *pgvector.Vector, limit int
 		var chunk Chunk
 		if err := rows.Scan(
 			&chunk.ID, &chunk.DocID, &chunk.Title, &chunk.Author, &chunk.Text, &chunk.Time, &chunk.Type, &chunk.Score,
-			&chunk.Deleted, &chunk.Dead, &chunk.Embedding, &chunk.Info.Number, &chunk.Info.Start, &chunk.Info.End,
+			&chunk.Deleted, &chunk.Dead, &chunk.Embedding, &chunk.Info.Number, &chunk.Info.Start, &chunk.Info.End, &chunk.ClusterID,
 		); err != nil {
 			return nil, fmt.Errorf("scan: %w", err)
 		}
 		out = append(out, &chunk)
 	}
 	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows: %w", err)
+	}
+	return out, nil
+}
+
+func (obj *Database) SearchInClusters(
+	ctx context.Context,
+	vec *pgvector.Vector,
+	clusterIDs []int32,
+	limit int,
+) ([]*Chunk, error) {
+	if limit <= 0 || len(clusterIDs) == 0 {
+		return nil, nil
+	}
+
+	const req = `
+	SELECT
+	id, doc_id, title, author, text, time, type, score, deleted, dead, embedding, chunk_no, chunk_start, chunk_end,
+	cluster_id
+	FROM hackernews
+	WHERE cluster_id = ANY($2)
+	ORDER BY embedding <-> $1
+	LIMIT $3;
+`
+
+	rows, err := obj.DB.QueryContext(ctx, req, vec, clusterIDs, limit)
+	if err != nil {
+		return nil, fmt.Errorf("search in clusters: %w", err)
+	}
+	defer rows.Close()
+
+	out := make([]*Chunk, 0, limit)
+	for rows.Next() {
+		var chunk Chunk
+		if err = rows.Scan(
+			&chunk.ID, &chunk.DocID, &chunk.Title, &chunk.Author, &chunk.Text, &chunk.Time, &chunk.Type, &chunk.Score,
+			&chunk.Deleted, &chunk.Dead, &chunk.Embedding, &chunk.Info.Number, &chunk.Info.Start, &chunk.Info.End, &chunk.ClusterID,
+		); err != nil {
+			return nil, fmt.Errorf("scan: %w", err)
+		}
+		out = append(out, &chunk)
+	}
+	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("rows: %w", err)
 	}
 	return out, nil

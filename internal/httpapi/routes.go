@@ -138,8 +138,17 @@ func (obj *Handler) search(writer http.ResponseWriter, request *http.Request) {
 		req.Limit = 100
 	}
 
+	var (
+		chunks []*database.Chunk
+		err    error
+	)
+
 	vec := pgvector.NewVector(req.Embedding)
-	chunks, err := obj.db.Search(request.Context(), &vec, req.Limit)
+	if len(req.ClusterIDs) > 0 {
+		chunks, err = obj.db.SearchInClusters(request.Context(), &vec, req.ClusterIDs, req.Limit)
+	} else {
+		chunks, err = obj.db.Search(request.Context(), &vec, req.Limit)
+	}
 	if err != nil {
 		obj.sendErrResponse(writer, "internal server error", http.StatusInternalServerError, err)
 		return
