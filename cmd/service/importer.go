@@ -1,16 +1,22 @@
-package importer
+package main
 
 import (
 	"context"
 	"time"
 
 	database "github.com/atroxxxxxx/embed-store/internal/db"
+	"github.com/atroxxxxxx/embed-store/internal/importer"
 	"github.com/atroxxxxxx/embed-store/internal/runcfg"
 	"go.uber.org/zap"
 )
 
-func Exec(ctx context.Context, db *database.Database, cfg runcfg.RunConfig, log *zap.Logger, tickTime time.Duration) {
-	stats := &Stats{}
+func ExecImporter(
+	ctx context.Context,
+	db *database.Database,
+	cfg runcfg.RunConfig, log *zap.Logger,
+	tickTime time.Duration,
+) {
+	stats := &importer.Stats{}
 	importCtx, cansel := context.WithCancel(ctx)
 
 	go func() {
@@ -23,8 +29,9 @@ func Exec(ctx context.Context, db *database.Database, cfg runcfg.RunConfig, log 
 		)
 
 		start := time.Now()
-		err := Run(ctx, db, cfg.ImportCfg, stats)
+		err := importer.Run(ctx, db, cfg.ImportCfg, stats)
 		duration := time.Since(start)
+
 		if err != nil {
 			log.Error("import failed", zap.Duration("duration", duration), zap.Error(err))
 		}
@@ -46,8 +53,10 @@ func Exec(ctx context.Context, db *database.Database, cfg runcfg.RunConfig, log 
 			select {
 			case <-ctx.Done():
 				return
+
 			case <-importCtx.Done():
 				return
+
 			case <-ticker.C:
 				log.Info("import progres",
 					zap.Int64("read", stats.Read.Load()),
@@ -55,9 +64,7 @@ func Exec(ctx context.Context, db *database.Database, cfg runcfg.RunConfig, log 
 					zap.Int64("duplicates", stats.Duplicates.Load()),
 					zap.Int64("failed", stats.Failed.Load()),
 				)
-
 			}
 		}
 	}()
-
 }
